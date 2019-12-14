@@ -1,0 +1,405 @@
+<!--CCT College 
+    Subject: Mobile Development 
+    Author: CESAR MIGUEL GARCIA SOSA
+    Student Number: 2017416 -->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
+    <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
+    <script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+    <title>Travel App V2 - Cesar</title>
+    <script src="key.js"></script>
+    <script>
+        var xmlhttp, xmlhttpCurrency, xmlhttpRate, xmlhttpWeather;
+        var lat, long; //Global variables for longitude and latitude
+        var database; //Variable to open database
+        //Results from processPlace function
+        var country, currency, city, currencyName, currencySymbol
+        var country2;
+        //Results from exchangeCurrency function
+        var exchangeRate;
+        //Results from processWeather
+        var calcTemp;
+        //Variable to check the amount data saved
+        var forLength;
+
+        //This code will execute once the application is opened
+        window.onload = function() {
+
+            //Setting the action to be executed once the buttons are pressed
+            document.addEventListener('deviceready', init);
+            document.getElementById('USDto').addEventListener('click', USDto);
+            document.getElementById('toUSD').addEventListener('click', toUSD);
+            document.getElementById('btnSave').addEventListener('click', saveData);
+            document.getElementById('showPlaces').addEventListener('click', retrievingData);
+            document.getElementById('resetButton').addEventListener('click', resetData);
+            document.getElementById('previous').addEventListener('click', retrievingData);
+            //Opening data base
+            database = window.openDatabase("locations", "1.0", "CesarGarcia", 200000);
+
+        }
+
+        //Creating transaction with the DataBase
+        function saveData(e) {
+            database.transaction(saveRecord, onSuccess, onError);
+        }
+
+        //This function stores the data in the Data Base
+        function saveRecord(transaction) {
+            transaction.executeSql('CREATE TABLE IF NOT EXISTS placesList (id INTEGER PRIMARY KEY AUTOINCREMENT,City TEXT NOT NULL, Country TEXT NOT NULL, Latitude DECIMAL NOT NULL, Longitude DECIMAL NOT NULL, ExRate DECIMAL NOT NULL, Currency TEXT, Temperature INTEGER)');
+            var sql = "INSERT INTO placesList (City,Country,Latitude,Longitude,ExRate,Currency,Temperature) VALUES ('" + city + "','" + country + "','" + lat + "','" + long + "','" + exchangeRate + "','" + currency + "','" + calcTemp + "')";
+            console.log(sql);
+            transaction.executeSql(sql);
+            if (city == undefined)
+                alert(country + " has been saved!")
+            else
+                alert(city + " has been saved!");
+        }
+
+        //Function to Retrieve Data - Page 4
+        function retrievingData(e) {
+            database.transaction(retrieveData, onSuccess, onError);
+        }
+        //Executing transaction to Retrieve the Data
+        function retrieveData(transaction) {
+            transaction.executeSql("SELECT * FROM placesList", [], getSuccess, getError);
+        }
+
+        //Retrieving information from our Places visited
+        function getSuccess(tx, result) {
+            console.log("success");
+            console.log(result);
+            var rows = result.rows;
+            //First I initialized the fields to don't repeat values on the screen
+            document.getElementById('places').innerHTML = " ";
+            document.getElementById('listEmpty').innerHTML = " ";
+            forLength = rows.length;
+
+            //Printing the values saved on the List
+            if (forLength == 0) {
+                document.getElementById('listEmpty').innerHTML = "<h4>List is empty.</h4>"
+
+                //In order to keep an clear an organized screen, the last 5 values saved will appear on screen
+                //This will execute if the cities saved are less than 5
+            } else if (forLength <= 5) {
+                console.log(rows.length);
+                for (var x = 0; x < rows.length; x++) {
+                    var showName = result.rows[x].City;
+                    var showCountry = result.rows[x].Country;
+                    var showLatitude = result.rows[x].Latitude;
+                    var showLongitude = result.rows[x].Longitude;
+                    var showExRate = result.rows[x].ExRate;
+                    var showCurrency = result.rows[x].Currency;
+                    var showTemperature = result.rows[x].Temperature;
+                    var out = "<li><h6>" + showName + ", " + showCountry + "</h6></br>Latitude: " + showLatitude + " | Longitude: " + showLongitude + "</br>Exchange Rate: " + showExRate + " | Currency: " + showCurrency + " | Temp: " + showTemperature + "°C </li>";
+                    document.getElementById('places').innerHTML += out;
+                }
+                //If the list is bigger than 5 the APP will show the last 5 saved
+            } else {
+                console.log(rows.length);
+                for (var x = rows.length - 5; x < rows.length; x++) {
+                    var showName = result.rows[x].City;
+                    var showCountry = result.rows[x].Country;
+                    var showLatitude = result.rows[x].Latitude;
+                    var showLongitude = result.rows[x].Longitude;
+                    var showExRate = result.rows[x].ExRate;
+                    var showCurrency = result.rows[x].Currency;
+                    var showTemperature = result.rows[x].Temperature;
+                    var out = "<li><h6>" + showName + ", " + showCountry + "</h6></br>Latitude: " + showLatitude + " | Longitude: " + showLongitude + "</br>Exchange Rate: " + showExRate + " | Currency: " + showCurrency + " | Temp: " + showTemperature + "°C </li>";
+                    document.getElementById('places').innerHTML += out;
+                }
+            }
+            //Refreshing our list in order the get a better formatting
+            $('#places').listview('refresh');
+        }
+
+        function getError(e) {
+            console.log(e);
+        }
+
+
+        //Reseting data from Places Saved (Empty the list of places saved)
+        function resetData(e) {
+            database.transaction(resetInfo, onSuccess, onError);
+            document.getElementById('places').innerHTML = " ";
+        }
+        //Executing transaction to Reset the Data
+        function resetInfo(transaction) {
+            transaction.executeSql("DELETE FROM placesList");
+            document.getElementById('listEmpty').innerHTML = "<h4>Data has been deleted !!</h4>"
+            alert("Data has been restored");
+        }
+
+        //If the transaction executes succesfully then onSuccess executes
+        function onSuccess() {
+            console.log("Record Saved");
+        }
+
+        //If the transaction is not executed an error is printed
+        function onError(error) {
+            console.log("SQL error: " + error);
+        }
+
+        //This code will execute when the device is ready
+        function init() {
+            navigator.geolocation.getCurrentPosition(success, error);
+            // success();
+        }
+
+        // Finding the current location of the Device 
+        function success(position) {
+
+            var lat = position.coords.latitude;
+            var long = position.coords.longitude;
+            //Testing Coordinates
+            // Dublin Coordinates
+            // lat = 53.350140, long = -6.266155;
+            // Miami coordinates
+            // lat = 25.761681, long = -80.191788;
+
+            document.getElementById('lat').innerHTML = lat;
+            document.getElementById('long').innerHTML = long;
+            getAreaInfo(lat, long);
+            weather();
+        }
+
+        function error(e) {
+            alert(e.message);
+        }
+
+        //This function calls the API of opencage to get the name of city and country
+        function getAreaInfo(lat, long) {
+            // https://api.opencagedata.com/geocode/v1/json?q=LAT+LNG&key=9c181ef3732444e1bec569678b50dae7
+            var url = "https://api.opencagedata.com/geocode/v1/json?q=";
+            url += lat + "+" + long;
+            url += "&key=" + keyLocation;
+            xmlhttp = new XMLHttpRequest();
+            xmlhttp.onreadystatechange = processPlace;
+            xmlhttp.open("GET", url, true);
+            xmlhttp.send();
+        }
+
+
+        //Function to process the data obtained by openCage
+        var resultLocation;
+
+        function processPlace() {
+            //When we get a ready state of 4 we know communication is done
+            if (xmlhttp.readyState == 4) {
+                var theJSON = xmlhttp.responseText;
+                result = JSON.parse(theJSON);
+                console.log(result);
+                // Getting all the results from the JSON
+                country = result.results[0].components.country;
+                currency = result.results[0].annotations.currency.iso_code;
+                city = result.results[0].components.city;
+                currencyName = result.results[0].annotations.currency.name;
+                currencySymbol = result.results[0].annotations.currency.symbol;
+                //Outputs
+                //Sometimes city might not be available so adding this line of code only the country will appear
+                if (city == undefined) {
+                    resultLocation = "You are located in <h3>" + country + "</h3>";
+                    document.getElementById('country').innerHTML = resultLocation;
+                    document.getElementById('countryAbout').innerHTML = resultLocation;
+                    document.getElementById('city').innerHTML = country;
+                } else {
+                    resultLocation = "You are located in <h3>" + city + ", " + country + "</h3>";
+                    document.getElementById('country').innerHTML = resultLocation;
+                    document.getElementById('countryAbout').innerHTML = resultLocation;
+                    document.getElementById('city').innerHTML = city;
+                }
+                // var resultLocation = "You are located in <h3>" + city + ", " + country + "</h3>";
+                var resultCurrency = "The currency used is " + currency;
+                var currency2 = currencyName + " (" + currencySymbol + ") ";
+                getCurrency();
+                console.log("Currency 1: " + currency);
+            }
+
+            // document.getElementById('country').innerHTML = resultLocation;
+            // document.getElementById('countryAbout').innerHTML = resultLocation;
+            document.getElementById('currency').innerHTML = resultCurrency;
+            document.getElementById('currencyP3').innerHTML = "The currency used in " + city + " is " + currencyName + "";
+            document.getElementById('currency2').innerHTML = currency2;
+            document.getElementById('exCurrency').innerHTML = currency;
+            // document.getElementById('city').innerHTML = city;
+        }
+
+        //Finding the current exchange in comparisson to USD
+        function getCurrency() {
+            console.log("Executing currency function");
+            var urlCurrency = "http://apilayer.net/api/live?access_key=";
+            urlCurrency += keyCurrency;
+            urlCurrency += "&currencies=&source=USD&format=";
+            xmlhttpCurrency = new XMLHttpRequest();
+            xmlhttpCurrency.onreadystatechange = exchangeCurrency;
+            xmlhttpCurrency.open("GET", urlCurrency, true);
+            xmlhttpCurrency.send();
+        }
+
+        //Function to get the Exchange Rate of the current location
+        function exchangeCurrency() {
+            if (xmlhttpCurrency.readyState == 4) {
+                var exchangeJSON = xmlhttpCurrency.responseText;
+                resultExchange = JSON.parse(exchangeJSON);
+                console.log(resultExchange);
+                //API request
+                //This way doesn't work because prints a string rather than the value 
+                // var rate = "resultExchange.quotes.USD" + currency;
+                // console.log(rate);
+                // rate2.concat('resultExchange.quotes.USD' + currency);
+
+                //Creating an array to get all the element from QUOTES
+                console.log("entro aca");
+                var rateArray = [];
+                for (const value in resultExchange.quotes) {
+                    rateArray.push(value);
+                }
+
+                //Comparing every value of the quotes with the currency request needed
+                for (var isoCode in rateArray) {
+                    // console.log();
+                    if (rateArray[isoCode] == "USD" + currency) {
+                        exchangeRate = resultExchange.quotes[rateArray[isoCode]];
+                        console.log("Test of value exchange Rate: " + exchangeRate);
+                        document.getElementById('er').innerHTML = exchangeRate;
+                        document.getElementById('erP3').innerHTML = exchangeRate;
+                    } else {
+                        console.log("exchange rate value not catched");
+                        continue;
+                    }
+                }
+                // exchangeRate = resultExchange.quotes.USDEUR; //Testing hard code of the currency
+            }
+        }
+
+        //Calculating the value from USD to foreign currency
+        function USDto() {
+            var USDamount = document.getElementById('cur1').value;
+            var resultUSD = (exchangeRate * USDamount).toFixed(2);
+            // resultUSD += " " + currencySymbol;
+            resultUSD = USDamount + " $ converted to USD is............  " + resultUSD + " " + currencySymbol;
+            document.getElementById('usdConvert').innerHTML = resultUSD;
+            alert(resultUSD);
+        }
+
+        //Calculating the value from foreign currency to USD
+        function toUSD() {
+            var foreignCurrency = document.getElementById('cur2').value;
+            var resultForeign = (foreignCurrency / exchangeRate).toFixed(2);
+            resultForeign = foreignCurrency + " " + currencySymbol + " converted to USD is............ " + resultForeign;
+            resultForeign += " $ ";
+            document.getElementById('foreignConvert').innerHTML = resultForeign;
+            alert(resultForeign);
+        }
+
+        //Finding weather by passing the coordinates located before
+        function weather() {
+            // api.openweathermap.org/data/2.5/weather?lat=35&lon=139&appid=KEY
+            console.log("Weather function");
+            var urlWeather = "http://api.openweathermap.org/data/2.5/weather?";
+            urlWeather += "lat=" + lat + "&lon=" + long;
+            urlWeather += "&appid=" + keyWeather;
+            xmlhttpWeather = new XMLHttpRequest();
+            xmlhttpWeather.onreadystatechange = processWeather;
+            xmlhttpWeather.open("GET", urlWeather, true);
+            xmlhttpWeather.send();
+        }
+
+
+        //Getting the temperature from the JSON and transforming to Celcius
+        function processWeather() {
+            if (xmlhttpWeather.readyState == 4) {
+                var weatherJSON = xmlhttpWeather.responseText;
+                resultWeather = JSON.parse(weatherJSON);
+                console.log(resultWeather);
+                //API request
+                var temp = resultWeather.main.temp; //Getting temperature on Kelvin 
+                calcTemp = (temp - 273.15).toFixed(0); //Formula to convert Kelvin to Celcius
+                var weatherString = "Weather: " + calcTemp + "°C";
+                document.getElementById('weather').innerHTML = weatherString;
+            }
+        }
+    </script>
+
+    <!-- Giving style and colors to the application -->
+    <style>
+        #header {
+            background-color: rgb(255, 128, 38);
+            color: white;
+            letter-spacing: 1px;
+            font-style: italic;
+            font-size: 17px;
+            text-shadow: 1px 1px black;
+        }
+        
+        #headerCurrency {
+            background-color: rgb(255, 128, 38);
+            color: white;
+            font-size: 11px;
+            text-shadow: 1px 1px black;
+        }
+        
+        #page3 {
+            background-image: url(bgExchange.jpeg);
+        }
+        
+        #places {
+            font-size: smaller;
+        }
+        
+        #footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+
+
+<!-- Page 3 (Exchange Currencies)-->
+
+<div data-role="page" id="page3">
+    <div data-role="main" class="ui-content">
+        <div data-role="header" id="headerCurrency">
+            <h3>EXCHANGE CURRENCY</h3>
+        </div>
+        </br>
+        </br>
+        <!-- <div id="cityExchange"></div> -->
+        <div id="currencyP3"></div>
+        </br <p>Exchange rate: <output id="erP3"></output></p>
+
+        <!-- Converting from USD -->
+        <label for="cur1"><h3>United States Dollars ($) to be changed: </h3></label>
+        <input id="cur1" type="number" />
+        <button id="USDto">Exchange USD</button>
+        <div id="usdConvert"></div>
+
+
+        <!-- Coverting from foreign currency -->
+        <label for="cur2"><h3><output id="currency2"></output> to be changed: </h2></label>
+        <input id="cur2" />
+        <button id="toUSD">Exchange <output id="exCurrency"></output></button>
+        <div id="foreignConvert"></div>
+
+        <button onClick="location.href='index.html#mainPage'">Go to Main Page</button>
+
+    </div>
+    <!-- main -->
+    <div data-role="footer" id="footer">
+        <h2>Cesar Garcia - 2017416</h2>
+    </div>
+    <!-- footer -->
+</div>
+<!-- page -->
+
+
+<script type="text/javascript" src="cordova.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,183 @@
+<!--CCT College 
+    Subject: Mobile Development 
+    Author: CESAR MIGUEL GARCIA SOSA
+    Student Number: 2017416 -->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
+    <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
+    <script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+    <title>Travel App V2 - Cesar</title>
+    <script src="key.js"></script>
+
+    <script>
+        var xmlhttp, xmlhttpCurrency, xmlhttpRate, xmlhttpWeather;
+        var lat, long; //Global variables for longitude and latitude
+        var database; //Variable to open database
+        //Results from processPlace function
+        var country, currency, city, currencyName, currencySymbol
+        var country2;
+        //Results from exchangeCurrency function
+        var exchangeRate;
+        //Results from processWeather
+        var calcTemp;
+        //Variable to check the amount data saved
+        var forLength;
+
+        //This code will execute once the application is opened
+        window.onload = function() {
+
+            //Setting the action to be executed once the buttons are pressed
+            document.addEventListener('deviceready', init);
+            document.getElementById('USDto').addEventListener('click', USDto);
+            document.getElementById('toUSD').addEventListener('click', toUSD);
+            document.getElementById('btnSave').addEventListener('click', saveData);
+            document.getElementById('showPlaces').addEventListener('click', retrievingData);
+            document.getElementById('resetButton').addEventListener('click', resetData);
+            document.getElementById('previous').addEventListener('click', retrievingData);
+            //Opening data base
+            database = window.openDatabase("locations", "1.0", "CesarGarcia", 200000);
+
+        }
+
+
+        //This code will execute when the device is ready
+        function init() {
+            navigator.geolocation.getCurrentPosition(success, error);
+            // success();
+        }
+
+        // Finding the current location of the Device 
+        function success(position) {
+
+            var lat = position.coords.latitude;
+            var long = position.coords.longitude;
+            //Testing Coordinates
+            // Dublin Coordinates
+            // lat = 53.350140, long = -6.266155;
+            // Miami coordinates
+            // lat = 25.761681, long = -80.191788;
+
+            document.getElementById('lat').innerHTML = lat;
+            document.getElementById('long').innerHTML = long;
+            getAreaInfo(lat, long);
+        }
+
+        function error(e) {
+            alert(e.message);
+        }
+
+        //This function calls the API of opencage to get the name of city and country
+        function getAreaInfo(lat, long) {
+            // https://api.opencagedata.com/geocode/v1/json?q=LAT+LNG&key=9c181ef3732444e1bec569678b50dae7
+            var url = "https://api.opencagedata.com/geocode/v1/json?q=";
+            url += lat + "+" + long;
+            url += "&key=" + keyLocation;
+            xmlhttp = new XMLHttpRequest();
+            xmlhttp.onreadystatechange = processPlace;
+            xmlhttp.open("GET", url, true);
+            xmlhttp.send();
+        }
+
+        //Function to process the data obtained by openCage
+        var resultLocation;
+
+        function processPlace() {
+            //When we get a ready state of 4 we know communication is done
+            if (xmlhttp.readyState == 4) {
+                var theJSON = xmlhttp.responseText;
+                result = JSON.parse(theJSON);
+                console.log(result);
+                // Getting all the results from the JSON
+                country = result.results[0].components.country;
+                city = result.results[0].components.city;
+                //Outputs
+                //Sometimes city might not be available so adding this line of code only the country will appear
+                if (city == undefined) {
+                    resultLocation = "You are located in <h3>" + country + "</h3>";
+                    document.getElementById('country').innerHTML = resultLocation;
+                    document.getElementById('countryAbout').innerHTML = resultLocation;
+                    document.getElementById('city').innerHTML = country;
+                } else {
+                    resultLocation = "You are located in <h3>" + city + ", " + country + "</h3>";
+                    document.getElementById('country').innerHTML = resultLocation;
+                    document.getElementById('countryAbout').innerHTML = resultLocation;
+                    document.getElementById('city').innerHTML = city;
+                }
+                getCurrency();
+            }
+
+        }
+    </script>
+
+    <!-- Giving style and colors to the application -->
+    <style>
+        #header {
+            background-color: rgb(255, 128, 38);
+            color: white;
+            letter-spacing: 1px;
+            font-style: italic;
+            font-size: 17px;
+            text-shadow: 1px 1px black;
+        }
+        
+        #mainPage {
+            color: rgb(0, 0, 0);
+            background-image: url(bgMain.jpg);
+        }
+        
+        #welcome {
+            color: papayawhip;
+            text-shadow: black 1px 1px;
+        }
+        
+        #footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+        }
+        
+        #dataRestored {
+            position: absolute;
+        }
+    </style>
+</head>
+
+<!-- This is the Main Page -->
+
+<body>
+    <div data-role="page" id="mainPage">
+        <div data-role="header" id="header">
+            <h1>CesarM's Travel</h1>
+        </div>
+        <!-- header -->
+        <div data-role="main" class="ui-content">
+            </br>
+            <h2 id="welcome">Welcome!! </h2>
+            </br>
+            <div id="country"></div>
+            <!-- Outputs: You are located in 'City,Country' -->
+            </br>
+
+            <!-- Buttons -->
+            <button onClick="location.href='about.html'" id="info">About <output id="city"></output></button>
+            <button onClick="location.href='index.html#page3'" id="btnStyle">Exchange Currencies</button>
+            <button onClick="location.href='index.html#page4'" id="previous">Previous Places</button>
+
+        </div>
+        <!-- main -->
+        <div data-role="footer" id="footer">
+            <h2>Cesar Garcia - 2017416</h2>
+        </div>
+        <!-- footer -->
+    </div>
+    <!-- page -->
+
+</body>
+
+</html>
